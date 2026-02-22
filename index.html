@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>폐교 담력시험</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0d0e12;
+            color: #d1d5db;
+        }
+
+        .log-entry {
+            border-left: 2px solid #374151;
+            padding-left: 1rem;
+            margin-bottom: 0.75rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dice-box {
+            background: linear-gradient(145deg, #1a202c, #0d1117);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .key-found-anim {
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        #log-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        #log-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #log-container::-webkit-scrollbar-thumb {
+            background: #2d3748;
+            border-radius: 10px;
+        }
+
+        .input-group {
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4">
+
+    <header class="text-center my-12">
+        <h1 class="text-4xl font-bold tracking-[0.2em] text-gray-100 uppercase">Abandoned School</h1>
+    </header>
+
+    <div id="app" class="w-full max-w-xl bg-[#161920] rounded-[2rem] p-8 border border-gray-800 shadow-2xl">
+        
+        <!-- Setup Screen -->
+        <div id="setup-screen" class="space-y-6">
+            <div id="character-inputs" class="space-y-4">
+                <!-- Character inputs will be added here -->
+            </div>
+            
+            <div class="flex gap-2">
+                <button id="add-char-btn" onclick="addCharacterInput()" class="flex-1 bg-gray-800 text-gray-300 py-3 rounded-xl hover:bg-gray-700 transition-all text-sm font-bold border border-gray-700">
+                    + 캐릭터 추가
+                </button>
+                <button id="remove-char-btn" onclick="removeCharacterInput()" class="flex-1 bg-gray-800 text-gray-300 py-3 rounded-xl hover:bg-gray-700 transition-all text-sm font-bold border border-gray-700">
+                    - 캐릭터 삭제
+                </button>
+            </div>
+
+            <button onclick="initGame()" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all active:scale-[0.98] mt-4">
+                ENTER
+            </button>
+            <p class="text-center text-xs text-gray-600 uppercase tracking-widest">Min 2 / Max 6 Characters</p>
+        </div>
+
+        <!-- Main Game -->
+        <div id="game-screen" class="hidden space-y-8">
+            <div class="text-center">
+                <div id="loc-name" class="text-2xl font-bold text-white tracking-widest border-b border-gray-800 pb-4">복도</div>
+            </div>
+
+            <div id="selection-area" class="grid grid-cols-2 gap-3">
+                <!-- Location buttons -->
+            </div>
+
+            <!-- Dice Roll Area -->
+            <div id="roll-area" class="hidden text-center space-y-8">
+                <div id="event-desc" class="text-lg text-gray-300 leading-relaxed font-light italic px-4 min-h-[4rem]"></div>
+                
+                <div class="flex flex-col items-center gap-4">
+                    <div id="dice-result" class="dice-box w-24 h-24 rounded-3xl flex items-center justify-center text-4xl font-bold text-white border border-gray-700">
+                        ?
+                    </div>
+                    <div class="space-y-1">
+                        <div id="active-char" class="text-xl font-bold text-purple-400">이름</div>
+                        <div id="check-type" class="text-xs text-yellow-600 font-bold tracking-widest uppercase"></div>
+                    </div>
+                </div>
+
+                <button id="roll-btn" class="w-full bg-gray-100 text-black font-bold py-4 rounded-2xl hover:bg-white transition-all active:scale-[0.98]">
+                    ROLL DICE
+                </button>
+            </div>
+
+            <!-- Result Area -->
+            <div id="result-area" class="hidden text-center space-y-6">
+                <div id="final-verdict" class="text-4xl font-black italic tracking-tighter">SUCCESS</div>
+                <div id="key-found-msg" class="hidden flex flex-col items-center gap-2 text-yellow-400 font-bold">
+                    <span class="text-3xl key-found-anim">🔑</span>
+                    <span>탈출용 열쇠를 발견했습니다!</span>
+                </div>
+                <div id="action-buttons">
+                    <button id="next-action-btn" onclick="backToHallway()" class="bg-gray-800 text-gray-400 px-6 py-2 rounded-full text-xs hover:text-white transition-colors">
+                        LEAVE ROOM
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ending Area -->
+            <div id="ending-area" class="hidden text-center space-y-8 py-10">
+                <div class="text-5xl mb-4">🚪✨</div>
+                <h2 class="text-3xl font-bold text-white uppercase tracking-[0.3em]">Escaped</h2>
+                <p id="ending-text" class="text-gray-400 leading-relaxed px-4"></p>
+                <button onclick="location.reload()" class="bg-white text-black font-bold py-3 px-8 rounded-xl hover:bg-gray-200 transition-all">RESTART</button>
+            </div>
+
+            <!-- Log Area -->
+            <div id="log-container" class="h-44 overflow-y-auto bg-black bg-opacity-20 rounded-2xl p-5 text-sm space-y-3 border border-gray-800/50 mt-4">
+                <div class="text-gray-600 text-center text-xs">탐색 기록이 여기에 표시됩니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rooms = [
+            { id: 'music', name: '음악실', events: [
+                { desc: '정적을 깨고 피아노 건반 하나가 스스로 눌립니다.', check: '용기' },
+                { desc: '메트로놈이 멋대로 박자를 맞추기 시작합니다.', check: '관찰' },
+                { desc: '바이올린 케이스가 열리며 불협화음이 들립니다.', check: '정신력' },
+                { desc: '칠판에 그려진 높은음자리표가 핏빛으로 변합니다.', check: '관찰' },
+                { desc: '악보 속 음표들이 벌레처럼 꿈틀거리며 쏟아집니다.', check: '지능' },
+                { desc: '먼지 쌓인 레코드판에서 아이의 웃음소리가 흘러나옵니다.', check: '용기' },
+                { desc: '낡은 그랜드 피아노 밑에서 누군가의 손이 뻗어나옵니다.', check: '민첩' }
+            ]},
+            { id: 'science', name: '과학실', events: [
+                { desc: '인체 모형이 문 앞을 가로막고 서 있습니다.', check: '민첩' },
+                { desc: '깨진 비커 안의 액체에서 독한 연기가 피어오릅니다.', check: '지능' },
+                { desc: '표본 병 속의 장기들이 꿈틀거리며 당신을 응시합니다.', check: '용기' },
+                { desc: '현미경 속 세포가 눈동자로 변해 당신을 관찰합니다.', check: '정신력' },
+                { desc: '알코올 램프에 갑자기 파란 불꽃이 일제히 타오릅니다.', check: '행운' },
+                { desc: '선반 위의 해골 모형이 딱딱거리며 턱을 움직입니다.', check: '용기' },
+                { desc: '환풍구에서 검은 액체가 폭포처럼 쏟아져 내립니다.', check: '민첩' }
+            ]},
+            { id: 'art', name: '미술실', events: [
+                { desc: '캔버스 뒤에서 누군가 훔쳐보는 시선이 느껴집니다.', check: '운' },
+                { desc: '석고상의 위치가 아까와 미묘하게 달라져 있습니다.', check: '관찰' },
+                { desc: '조각상이 갑자기 눈물을 흘리며 바닥에 부딪힙니다.', check: '민첩' },
+                { desc: '벽에 걸린 자화상의 입이 벌어지며 무언가 말하려 합니다.', check: '용기' },
+                { desc: '조소용 점토가 사람의 손가락 모양으로 빚어져 있습니다.', check: '정신력' },
+                { desc: '이젤 위에 당신의 뒷모습이 실시간으로 그려지고 있습니다.', check: '관찰' },
+                { desc: '바닥에 떨어진 팔레트에서 물감이 피처럼 번져 나옵니다.', check: '행운' }
+            ]},
+            { id: 'gym', name: '강당', events: [
+                { desc: '농구공 하나가 어둠 속에서 천천히 굴러옵니다.', check: '민첩' },
+                { desc: '높은 창문이 갑자기 거세게 덜컥거리기 시작합니다.', check: '용기' },
+                { desc: '무대 커튼이 휘날리며 정체 모를 발이 보입니다.', check: '관찰' },
+                { desc: '강당 한복판에 낡은 뜀틀이 홀로 흔들리고 있습니다.', check: '행운' },
+                { desc: '천장에서 체육관 매트가 무거운 소리를 내며 떨어집니다.', check: '민첩' },
+                { desc: '텅 빈 관중석에서 수많은 눈동자가 빛나기 시작합니다.', check: '용기' },
+                { desc: '호루라기 소리가 들리더니 공들이 일제히 튀어 오릅니다.', check: '정신력' }
+            ]},
+            { id: 'library', name: '도서실', events: [
+                { desc: '책장 깊숙한 곳에서 기괴한 속삭임이 들려옵니다.', check: '정신력' },
+                { desc: '펼쳐진 책 페이지가 바람도 없이 빠르게 넘어갑니다.', check: '지능' },
+                { desc: '높은 책장의 사다리가 스스로 옆으로 이동합니다.', check: '민첩' },
+                { desc: '도서실 전등이 깜빡이며 책들이 일제히 쏟아집니다.', check: '행운' },
+                { desc: '대출 장부에 당신의 이름이 오늘 날짜로 적혀 있습니다.', check: '지능' },
+                { desc: '책 사이에 끼워진 낡은 사진 속 인물이 당신을 가리킵니다.', check: '관찰' },
+                { desc: '열람실 의자들이 누군가 앉은 듯 뒤로 드르륵 끌립니다.', check: '용기' }
+            ]},
+            { id: 'stair', name: '중앙 계단', events: [
+                { desc: '계단 위에서 무거운 물체가 굴러떨어지는 소리가 납니다.', check: '민첩' },
+                { desc: '벽에 걸린 사진 속 인물들이 일제히 웃고 있습니다.', check: '용기' },
+                { desc: '계단을 올라도 계속 같은 층이 반복되는 미로에 빠집니다.', check: '지능' },
+                { desc: '난간 밑 어둠 속에서 창백한 손이 발목을 노립니다.', check: '민첩' },
+                { desc: '층계참 거울에 비친 당신의 모습이 다른 행동을 합니다.', check: '정신력' },
+                { desc: '위층에서 어린아이가 뛰어다니는 소리가 머리 위에서 들립니다.', check: '관찰' },
+                { desc: '계단 모서리마다 젖은 발자국이 선명하게 찍혀 있습니다.', check: '행운' }
+            ]}
+        ];
+
+        let characters = [];
+        let hasKey = false;
+        let exploreCount = 0;
+        let charCount = 0;
+
+        window.onload = () => {
+            addCharacterInput();
+            addCharacterInput();
+        };
+
+        function addCharacterInput() {
+            if (charCount >= 6) return;
+            charCount++;
+            const container = document.getElementById('character-inputs');
+            const div = document.createElement('div');
+            const charLabel = String.fromCharCode(64 + charCount);
+            div.className = "input-group group";
+            div.id = `input-group-${charCount}`;
+            div.innerHTML = `
+                <label class="text-xs text-gray-500 ml-1 mb-2 block uppercase tracking-tighter text-purple-400">Character ${charLabel}</label>
+                <input type="text" class="char-name-input w-full bg-transparent border-b border-gray-700 p-2 outline-none focus:border-purple-500 transition-colors text-lg text-white" placeholder="이름을 입력하세요">
+            `;
+            container.appendChild(div);
+            updateButtons();
+        }
+
+        function removeCharacterInput() {
+            if (charCount <= 2) return;
+            const lastInput = document.getElementById(`input-group-${charCount}`);
+            lastInput.remove();
+            charCount--;
+            updateButtons();
+        }
+
+        function updateButtons() {
+            document.getElementById('add-char-btn').disabled = charCount >= 6;
+            document.getElementById('remove-char-btn').disabled = charCount <= 2;
+            document.getElementById('add-char-btn').style.opacity = charCount >= 6 ? "0.5" : "1";
+            document.getElementById('remove-char-btn').style.opacity = charCount <= 2 ? "0.5" : "1";
+        }
+
+        function initGame() {
+            const inputs = document.querySelectorAll('.char-name-input');
+            characters = Array.from(inputs).map((input, idx) => input.value || String.fromCharCode(65 + idx));
+            
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            renderRooms();
+            pushLog(`탐사 시작: ${characters.join(', ')} 폐교 진입`);
+        }
+
+        function renderRooms() {
+            const container = document.getElementById('selection-area');
+            container.innerHTML = '';
+            rooms.forEach(room => {
+                const btn = document.createElement('button');
+                btn.className = "bg-[#1f232d] p-5 rounded-2xl border border-gray-800 hover:border-gray-500 hover:bg-[#252a35] transition-all text-sm font-bold text-gray-300";
+                btn.innerText = room.name;
+                btn.onclick = () => startEvent(room);
+                container.appendChild(btn);
+            });
+            document.getElementById('selection-area').classList.remove('hidden');
+            document.getElementById('roll-area').classList.add('hidden');
+            document.getElementById('result-area').classList.add('hidden');
+            document.getElementById('loc-name').innerText = "복도";
+        }
+
+        function startEvent(room) {
+            document.getElementById('loc-name').innerText = room.name;
+            document.getElementById('selection-area').classList.add('hidden');
+            document.getElementById('roll-area').classList.remove('hidden');
+            
+            const event = room.events[Math.floor(Math.random() * room.events.length)];
+            const actor = characters[Math.floor(Math.random() * characters.length)];
+
+            document.getElementById('event-desc').innerText = `"${event.desc}"`;
+            document.getElementById('active-char').innerText = actor;
+            document.getElementById('check-type').innerText = `${event.check} 판정`;
+            document.getElementById('dice-result').innerText = "?";
+            
+            document.getElementById('roll-btn').onclick = () => performRoll(actor, event);
+        }
+
+        function performRoll(actor, event) {
+            const rollBtn = document.getElementById('roll-btn');
+            rollBtn.disabled = true;
+            
+            const result = Math.floor(Math.random() * 20) + 1;
+            document.getElementById('dice-result').innerText = result;
+
+            setTimeout(() => {
+                document.getElementById('roll-area').classList.add('hidden');
+                document.getElementById('result-area').classList.remove('hidden');
+                
+                const isSuccess = result >= 10;
+                const verdictEl = document.getElementById('final-verdict');
+                exploreCount++;
+                
+                const keyChance = 0.12 + (exploreCount * 0.04);
+                const keyFoundThisTurn = isSuccess && Math.random() < keyChance && !hasKey;
+
+                if (isSuccess) {
+                    verdictEl.innerText = "SUCCESS";
+                    verdictEl.className = "text-4xl font-black italic tracking-tighter text-green-500";
+                    pushLog(`${actor}: ${event.check} 성공 [${result}]`);
+                } else {
+                    verdictEl.innerText = "FAILURE";
+                    verdictEl.className = "text-4xl font-black italic tracking-tighter text-red-500";
+                    pushLog(`${actor}: ${event.check} 실패 [${result}]`);
+                }
+
+                if (keyFoundThisTurn) {
+                    hasKey = true;
+                    document.getElementById('key-found-msg').classList.remove('hidden');
+                    const nextBtn = document.getElementById('next-action-btn');
+                    nextBtn.innerText = "열쇠를 챙겨 탈출하기";
+                    nextBtn.className = "bg-yellow-600 text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-yellow-500 transition-colors mt-4";
+                    nextBtn.onclick = showEnding;
+                    pushLog(`🗝️ ${actor}가 낡은 열쇠를 발견했습니다!`);
+                } else {
+                    document.getElementById('key-found-msg').classList.add('hidden');
+                    const nextBtn = document.getElementById('next-action-btn');
+                    nextBtn.innerText = "LEAVE ROOM";
+                    nextBtn.className = "bg-gray-800 text-gray-400 px-6 py-2 rounded-full text-xs hover:text-white transition-colors";
+                    nextBtn.onclick = backToHallway;
+                }
+
+                rollBtn.disabled = false;
+            }, 400);
+        }
+
+        function showEnding() {
+            document.getElementById('result-area').classList.add('hidden');
+            document.getElementById('loc-name').classList.add('hidden');
+            document.getElementById('log-container').classList.add('hidden');
+            document.getElementById('ending-area').classList.remove('hidden');
+            
+            const names = characters.length > 2 
+                ? `${characters.slice(0, -1).join(', ')} 그리고 ${characters[characters.length - 1]}`
+                : characters.join('와(과) ');
+
+            document.getElementById('ending-text').innerText = 
+                `${names} 일행은 찾은 열쇠를 이용해 폐교를 무사히 빠져나왔습니다. 어두웠던 건물 뒤로 차가운 밤공기와 안도감이 밀려옵니다.`;
+            
+            pushLog(`🏁 담력시험 종료: 탈출 성공`);
+        }
+
+        function backToHallway() {
+            renderRooms();
+        }
+
+        function pushLog(msg) {
+            const log = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.className = "log-entry";
+            entry.innerText = msg;
+            log.prepend(entry);
+        }
+    </script>
+</body>
+</html>
